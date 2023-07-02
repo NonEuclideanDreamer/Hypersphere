@@ -432,9 +432,9 @@ public class Spherpoint
 	//******************************************************************
 	public static Color combine(Color color1, Color color2, double a)
 	{
-		if((a==1))return color1;
+		if((a>=1))return color1;
 			
-		a=a-(int)a;
+		//a=a-(int)a;
 		int red, green, blue;
 		red=(int) (color1.getRed()*a+color2.getRed()*(1-a));
 		green=(int) (color1.getGreen()*a+color2.getGreen()*(1-a));

@@ -345,11 +345,11 @@ public class Observer
 	//*********************************************************************
 	// Draws a point, keeping track of the pixel, in finite-speed universe, light traveled >revolutions*PI
 	//*********************************************************************
-		public void drawPoint(BufferedImage image, double[][] zBuffer, Spherpoint point, int revolutions, Color background)
+		public void drawPoint(BufferedImage image, double[][] zBuffer, Spherpoint point, double d, Color background)
 		{	
-			double depth=0, radial, alpha;// depth into the image; radial and alpha the spherical coordinates of the direction
+			double depth=0, radial, alpha,// depth into the image; radial and alpha the spherical coordinates of the direction
 
-			depth=point.distance(position())+Math.PI*revolutions;
+			reldepth=point.distance(position());depth=d;
 			if(depth>range)return;
 			if(flatscreen) 
 			{
@@ -358,8 +358,8 @@ public class Observer
 				E4 direction=position().direction(point);
 				radial=Math.abs(getForward().angle(point));
 				
-				double reldepth=Math.abs(depth%Math.PI);
-				if(reldepth<5*exactness||Math.PI-reldepth<5*exactness)//Point is here or antipodal->color everything
+				//double reldepth=Math.abs(depth%Math.PI);
+				if(reldepth<2*exactness||Math.PI-reldepth<2*exactness)//Point is here or antipodal->color everything
 				{
 					int color=Spherpoint.combine(new Color(point.getColor()), background, 1-depth/range).getRGB();
 					for (int i=0; i<width; i++)
@@ -382,9 +382,9 @@ public class Observer
 				alpha=Math.signum(position().toEuclid().det(direction(), right, direction))*getRightward().angle(direction().normComp(direction)); //think about sign!
 				xPixel=width/2+(int) Math.round((Math.cos(alpha)*screenDistance*Math.tan(radial)));
 				yPixel=height/2-(int) Math.round((Math.sin(alpha)*screenDistance*Math.tan(radial)));
-				double pointradius=(Math.abs(dotsize/Math.sin(depth)));
+				double pointradius=(Math.abs(dotsize/Math.sin(reldepth)));
 				
-			//	System.out.println("depth="+depth+", range="+range);
+//	System.out.println("depth="+depth%Math.PI+", reldepth="+reldepth);
 	
 				int color=(Spherpoint.combine(new Color(point.color), background, 1-depth/range)).getRGB();
 
@@ -417,7 +417,7 @@ public class Observer
 				double hangle=Math.signum(Math.cos(getRightward().angle(horComp)))*getForward().angle(horComp),
 						vangle=Math.signum(position().toEuclid().det(direction(), right, direction))*horComp.angle(direction);
 				//	System.out.println("vangle="+vangle);
-				depth=point.distance(position())+revolutions*Math.PI;
+				depth=point.distance(position())+d*Math.PI;
 				if(depth%Math.PI<5*exactness||depth%Math.PI>Math.PI-5*exactness)//Points blocking the view
 				{
 					int color=Spherpoint.combine(new Color(point.getColor()), background, 1-depth/range).getRGB();

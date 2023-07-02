@@ -3438,7 +3438,7 @@ HopfFibration.hopf(2*Math.PI*j1/3+phi0, -psi,Math.PI*j1/3+2*Math.PI*i/9+t0/*Math
 	//*******************************************************************************************
 	// Archimedean with tetreahedral vf 388388 consisting of truncated Hexahedra
 	//*******************************************************************************************
-	public static Cellcomplex[] cont()
+	public static Cellcomplex[] cont() //unfinished
 	{
 		int[][] edgepoint=new int[576][2],sidepoint3=new int[192][3],sidepoint8=new int[144][8];
 		Spherpoint[]vertex= new Spherpoint[288], cellcenter=new Spherpoint[48];

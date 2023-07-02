@@ -3,21 +3,24 @@ import java.awt.image.BufferedImage;
 
 public class FiniteSpeed 
 {
-	static int denseness=11, filling=10, dotsize=4, width=1080,height=1080, revolutions=1;
+	static int denseness=6, filling=5, dotsize=10, width=2560,height=1440, revolutions=1;
 	static Color background=ForwardVideo.randomColorMatt(100);
 	static boolean empty=true,
+			acc=false,//do we accelerate?
 			foggy=false;//foggy: range how far light can be seen, increases
 	static double speed=2*Math.PI/1440, 
-			c=1,
+			c=2,
 			exactness=0.5*dotsize/width,
-			depth=Math.PI/2,
-			angle=Math.PI/2;//angle between moving direction and looking direction
+			a=4,//for acceleration
+			s=0.8,//for acceleration
+			depth=Math.PI*2,
+			angle=Math.PI/6;//angle between moving direction and looking direction
 	static Observer eye, eye2;
 	static Cellcomplex[] subject;
 	static double[][]zBuffer,
 		transformation;
 	static BufferedImage image;
-	static String name="cont1c2depth90angle", 
+	static String name="rectdodAcc2depth30angle", 
 			format="png";
 	public static void main(String[] args)
 	{
@@ -25,10 +28,10 @@ public class FiniteSpeed
 		Observer.range=depth;
 		eye=new Observer(width, height,Math.PI/2);
 		
-		subject=Polychoron.cont();//new Cellcomplex[] {(Polychoron.tiling335())};
+		subject=Polychoron.rect(Polychoron.tiling533(),4);//new Cellcomplex[] {(Polychoron.tiling335())};//
 		transformation=E4.randomrot();
 		
-		for(int i=0;i<1440;i++)
+		for(int i=0;i<10000;i++)
 		{
 			if(foggy)
 			Observer.range=depth;
@@ -44,6 +47,8 @@ public class FiniteSpeed
 				depth+=c*speed;
 				revolutions=1+(int)(depth/Math.PI);
 			}
+			if(acc)
+				s+=speed;
 			
 		}
 		
@@ -142,22 +147,37 @@ public class FiniteSpeed
 		Spherpoint pole=new Spherline(eye.position(),dir).location(Math.PI/2), antipodal=point.getAntipodal();
 
 		double dmin=Math.PI/2-pole.distance(point),
-				t0=pole.geodesic(point).location(1+dmin/(1+dmin)).distance(eye.position()),
+				t0=pole.geodesic(point).location(Math.PI/2/(Math.PI/2-dmin)).distance(eye.position()),
 				t,lastt=0;
-		for(int i=0;i<2*revolutions;i++)
+		
+		if(eye.viewPoint.location(t0).distance(point)>eye.viewPoint.location(-t0).distance(point))t0*=-1;
+		
+		//System.out.println(dmin+"="+eye.viewPoint.location(t0).distance(point));
+		boolean goOn=true;
+		while(goOn)
 		{
-			t=findT(t0,dmin,i);
+		
+			t=findT(t0,dmin,lastt);
 			if(t==-1 || t-lastt<0.000001) {}
 			else {
-				lastt=t;
+				
+			lastt=t;
+			
+			double d=t*c;	
+			if(acc) d=a*Math.log(s/(s-t));
+			int i=(int)(d/Math.PI);
 			//System.out.println("t="+t+", dmin="+dmin+", t0="+t0);
 			eye2=eye.copy();
 			eye2.moveForward(-t); 
+			
+			//System.out.println(eye2.position().distance(point)+"="+d);
 			eye2.turn(angle);
 			if(i%2==0)
-				eye2.drawPoint(image, zBuffer, point,i,background);
+				eye2.drawPoint(image, zBuffer, point,d,background);
 			else
-				eye2.drawPoint(image, zBuffer, antipodal, i,background);}
+				eye2.drawPoint(image, zBuffer, antipodal, d,background);}
+			if(acc) {if(a*Math.log(s/(s-t))>depth||t>s)goOn=false;}
+			else if(t*c>depth)goOn=false;
 		}
 		
 	}
@@ -165,7 +185,7 @@ public class FiniteSpeed
 	//*********************************************************************************************
 	// At what time did the light start at the relative location to the observer, to reach it now.
 	//********************************************************************************************
-	private static double findT(double t0, double dmin, int i) 
+	private static double findT(double t0, double dmin, double t) 
 	{//bruteforce
 	/*	double step=0.25/c, min=3, t=i*Math.PI/c, d, tmin=t, tmax=(i+1)*Math.PI/c;
 	//	System.out.println("step="+step);
@@ -188,7 +208,7 @@ public class FiniteSpeed
 		//	System.out.println("t="+t+", step="+step);
 		}*/
 		//Newton's mehod
-		double t=Math.PI/2*c*(i+0.5),f=Math.cos(c*t)-Math.cos(dmin)*Math.cos(t0-t),f1;
+	/*	double t=Math.PI/2*c*(i+0.5),f=Math.cos(c*t)-Math.cos(dmin)*Math.cos(t0-t),f1;
 		int counter=0;
 		while(Math.abs(f)>0.00000000000001&&counter<200)
 		{
@@ -198,8 +218,40 @@ public class FiniteSpeed
 			counter++;
 		}
 		if(counter==200)return -1;
+		return t;*/
+		
+		t+=0.0000001;
+		double tstep=0.02;if(acc)tstep=Math.min(tstep, s*(1-Math.exp(-Math.PI/a))/100);
+		double sign0, sign1,mid;
+	if(acc) {sign0=Math.signum(accf(t,t0,dmin));sign1=Math.signum(accf(t+tstep,t0,dmin));}
+	else {sign0=Math.signum(f(t,t0,dmin)); sign1=Math.signum(f(t+tstep,t0,dmin));}
+		while(sign0==sign1)
+		{
+			t+=tstep;
+			if(acc)sign1=Math.signum(accf(t+tstep,t0,dmin));
+			else sign1=Math.signum(f(t+tstep,t0,dmin));
+		}
+		double b=t+tstep;
+		while(b-t>0.00000000000001)
+		{
+			mid=(b+t)/2;
+			if (acc)sign1=Math.signum(accf(mid,t0,dmin));
+			else sign1=Math.signum(f(mid,t0,dmin));
+			if (sign0==sign1)
+				t=mid;
+			else b=mid;
+		}
 		return t;
 	}
 	
-
+	private static double f(double t, double t0, double dmin)
+	{
+		return (Math.cos(c*t)-Math.cos(dmin)*Math.cos(t0+t));
+	}
+	private static double accf(double t, double t0, double dmin)
+	{
+		return Math.cos(a*Math.log(s/(s-t)))-Math.cos(dmin)*Math.cos(t0+t);
+	}
+	
 }
+
